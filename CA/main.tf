@@ -16,11 +16,11 @@ module "ca" {
   source = "./modules/certificate_authority/"
 
   certificate_authority = {
-    common_name  = "vpn.ujstor"
+    common_name  = "ujstor.com"
     country      = "HR"
     locality     = "Zagreb"
-    organization = "ujstor.com"
-    unit         = "vpn"
+    organization = "ujstor"
+    unit         = "openvpn"
     validity     = 87600
   }
 
@@ -29,11 +29,11 @@ module "ca" {
 resource "null_resource" "ca_key_cert" {
   provisioner "local-exec" {
     command = <<-EOT
-	mkdir certs	
+	mkdir -p certs 
 	echo "${module.ca.certificate_authority_private_key}" > certs/ca_key.pem &&
-	echo "${module.ca.certificate_authority_certificate}" > certs/ca_cert.pem &&
+	echo "${module.ca.certificate_authority_certificate}" > certs/ca.crt &&
 	chmod 600 certs/ca_key.pem &&
-	chmod 600 certs/ca_cert.pem
+	chmod 600 certs/ca.crt
    EOT
   }
 }
