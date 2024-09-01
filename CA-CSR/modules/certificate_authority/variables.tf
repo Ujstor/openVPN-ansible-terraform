@@ -9,3 +9,8 @@ variable "certificate_authority" {
     validity     = number
   })
 }
+
+variable "allowed_uses" {
+  description = "List of key usages allowed for the issued certificate. Values are defined in RFC 5280"
+  type        = list(string)
+}

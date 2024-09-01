@@ -12,22 +12,51 @@ terraform {
   required_version = ">= 1.0.0, < 2.0.0"
 }
 
-module "csr_server" {
-  source = "./modules/csr_signing_server/"
+module "ca" {
+  source = "./modules/certificate_authority/"
 
-  server_certificates = {
+  certificate_authority = {
+    common_name  = "ujstor.com"
+    country      = "HR"
+    locality     = "Zagreb"
+    organization = "ujstor"
+    unit         = "openvpn"
+    validity     = 87600
+  }
+
+  allowed_uses = ["cert_signing", "crl_signing"]
+}
+
+resource "null_resource" "ca_key_cert" {
+  provisioner "local-exec" {
+    command = <<-EOT
+	mkdir -p certs/ca
+	echo "${module.ca.certificate_authority_private_key}" > certs/ca/ca_key.pem &&
+	echo "${module.ca.certificate_authority_certificate}" > certs/ca/ca.crt &&
+	chmod 600 certs/ca/ca_key.pem &&
+	chmod 600 certs/ca/ca.crt
+   EOT
+  }
+}
+
+module "csr_server" {
+  source = "./modules/csr_signing/"
+
+  server_client_certificates = {
     open_vpn = {
       common_name  = "vpn.ujstor.com"
       organization = "ujstor"
     }
   }
 
-  ca_private_key = file("../CA/certs/ca_key.pem")
-  ca_cert        = file("../CA/certs/ca.crt")
+  allowed_uses = ["server_auth", "digital_signature", "key_encipherment"]
+
+  ca_private_key = module.ca.certificate_authority_private_key
+  ca_cert        = module.ca.certificate_authority_certificate
 }
 
 resource "null_resource" "server_key_cert" {
-  for_each = module.csr_server.server_certificates
+  for_each = module.csr_server.server_client_certificates
 
   provisioner "local-exec" {
     command = <<-EOT
@@ -41,9 +70,9 @@ resource "null_resource" "server_key_cert" {
 }
 
 module "csr_client" {
-  source = "./modules/csr_signing_client"
+  source = "./modules/csr_signing"
 
-  client_certificates = {
+  server_client_certificates = {
     phone_1 = {
       common_name  = "vpn.ujstor.com"
       organization = "ujstor"
@@ -61,12 +90,14 @@ module "csr_client" {
     }
   }
 
-  ca_private_key = file("../CA/certs/ca_key.pem")
-  ca_cert        = file("../CA/certs/ca.crt")
+  allowed_uses = ["client_auth", "digital_signature", "key_encipherment"]
+
+  ca_private_key = module.ca.certificate_authority_private_key
+  ca_cert        = module.ca.certificate_authority_certificate
 }
 
 resource "null_resource" "client_key_cert" {
-  for_each = module.csr_client.client_certificates
+  for_each = module.csr_client.server_client_certificates
 
   provisioner "local-exec" {
     command = <<-EOT

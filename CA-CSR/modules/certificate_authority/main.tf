@@ -17,5 +17,5 @@ resource "tls_self_signed_cert" "ca" {
   validity_period_hours = var.certificate_authority.validity
   is_ca_certificate     = true
 
-  allowed_uses = ["cert_signing", "crl_signing"]
+  allowed_uses = var.allowed_uses
 }
