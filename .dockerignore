@@ -1,0 +1,10 @@
+*.tfstate
+*.tfstate.backup
+.terraform
+*.iml
+.test-data
+
+*.tfvars
+
+.terraform.lock.hcl
+.terragrunt-cache
